@@ -19,6 +19,8 @@ class ContactListView: UIViewController,ContactListViewProtocol {
     var ContactList = [CNContact]()
     var AppContactList = [CNContact]()
     
+    let sections:Array<String> = ["APP", "A","B","C","D","E","F","G","H","I","J","K","L","M","N","O","P","Q","R","S","T","U","V","W","X","Y","Z"]
+    
     override func viewDidLoad() {
         super.viewDidLoad()
         //List configuration using VIPER
@@ -73,11 +75,26 @@ class ContactListView: UIViewController,ContactListViewProtocol {
 
 extension ContactListView: UITableViewDataSource, UITableViewDelegate {
     
+    
+    func sectionIndexTitles(for tableView: UITableView) -> [String]? {
+        return self.sections
+    }
+    
+    func tableView(_ tableView: UITableView,
+                   sectionForSectionIndexTitle title: String,
+                   at index: Int) -> Int{
+        
+        return index
+    }
+    
+    func tableView(_ tableView: UITableView, titleForHeaderInSection section: Int) -> String? {
+        return sections[section].uppercased()
+    }
+    
     //Configuration of the cell
     func tableView(_ tableView: UITableView, cellForRowAt indexPath: IndexPath) -> UITableViewCell {
         
-        switch indexPath.section {
-        case 0:
+        if(indexPath.section == 0){
             //IF contact is already added to the app
             let cell : ContactsAppCell = contactTableView.dequeueReusableCell(withIdentifier: "contactAppCell", for: indexPath) as! ContactsAppCell
             let contact = AppContactList[indexPath.row]
@@ -96,61 +113,53 @@ extension ContactListView: UITableViewDataSource, UITableViewDelegate {
                 cell.contactPicture.image = UIImage(data: contact.thumbnailImageData!)
             }
             return cell
-        case 1:
+        }else{
             //IF is regular contact
             let cell : ContactCell = contactTableView.dequeueReusableCell(withIdentifier: "contactCell", for: indexPath) as! ContactCell
             
-            let contact = ContactList[indexPath.row]
+            let contact = ContactList.filter({$0.givenName.uppercased().starts(with: self.sections[indexPath.section].uppercased())})[indexPath.row]
             //Set the full name contact
             cell.nameLabel.text = contact.givenName + " " + contact.familyName
             //Set giveName and familyName first laters view
             cell.capsLabel.text = String(contact.givenName.uppercased().first!) +  String(contact.familyName.uppercased().first!)
             //For recycling cell we remove previous image
-           cell.contactPicture.image = nil
+            cell.contactPicture.image = nil
             
             //If contact has image show it
             if contact.imageDataAvailable{
                 cell.contactPicture.image = UIImage(data: contact.thumbnailImageData!)
             }
             return cell
-        default:
-            //Default condition
-             let cell : ContactCell = contactTableView.dequeueReusableCell(withIdentifier: "contactCell", for: indexPath) as! ContactCell
-             return cell
-            
         }
+        
         
         
     }
     
     func numberOfSections(in tableView: UITableView) -> Int {
-        return 2
+        return sections.count
     }
     
     func tableView(_ tableView: UITableView, numberOfRowsInSection section: Int) -> Int {
-        switch section {
-        case 0:
+        
+        if(section == 0){
             //Number of app contact list
             return AppContactList.count
-        case 1:
+        }else{
             //Number of regular contacts
-            return ContactList.count
-        default:
-            return 0
+            return ContactList.filter({$0.givenName.uppercased().starts(with: self.sections[section].uppercased())}).count
         }
         
     }
     
     func tableView(_ tableView: UITableView, didSelectRowAt indexPath: IndexPath) {
-        switch indexPath.section {
-        case 0:
+        
+        if(indexPath.section == 0){
             //Show app contact detail view
             presenter?.showAppContactSelection(with: AppContactList[indexPath.row], from: self)
-        case 1:
+        }else{
             //Show contact actions
-            presenter?.showContactSelection(with: ContactList[indexPath.row], from: self)
-        default:
-            break
+            presenter?.showContactSelection(with:  ContactList.filter({$0.givenName.uppercased().starts(with: self.sections[indexPath.section].uppercased())})[indexPath.row], from: self)
         }
         
     }
