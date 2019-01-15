@@ -23,17 +23,11 @@ class ContactListView: UIViewController,ContactListViewProtocol {
     
     override func viewDidLoad() {
         super.viewDidLoad()
-        //List configuration using VIPER
-        ContactListWireframe.createContactListModule(ContactListRef: self)
-        presenter?.viewDidLoad()
-        self.contactTableView.delegate = self
-        self.contactTableView.dataSource = self
-        self.searchView.delegate = self
         
         switch CNContactStore.authorizationStatus(for: .contacts) {
         case .denied:
             showSettingsAlert()
-        case .restricted, .notDetermined:
+        case .restricted:
             
             let store = CNContactStore()
             store.requestAccess(for: .contacts, completionHandler: { accessValue, error in
@@ -41,12 +35,30 @@ class ContactListView: UIViewController,ContactListViewProtocol {
                     self.showSettingsAlert()
                 }
             })
-            
+        case .notDetermined:
+            CNContactStore().requestAccess(for: .contacts, completionHandler: { granted, error in
+                if (granted){
+                    self.loadConfig()
+                }else{
+                    self.showSettingsAlert()
+                }
+            })
+        case .authorized:
+            self.loadConfig()
         default:
             break
         }
+        
+        
     }
-    
+    func loadConfig(){
+        //List configuration using VIPER
+        ContactListWireframe.createContactListModule(ContactListRef: self)
+        presenter?.viewDidLoad()
+        self.contactTableView.delegate = self
+        self.contactTableView.dataSource = self
+        self.searchView.delegate = self
+    }
     func showSettingsAlert(){
         let alert = UIAlertController(title: nil, message: "La App usa tus contactos para encontrar usuarios que ya conoces. Así será más fácil y rápido interactuar con ellos", preferredStyle: .alert)
         alert.addAction(UIAlertAction(title: "Ir a configuración", style: .default) { action in
@@ -69,6 +81,7 @@ class ContactListView: UIViewController,ContactListViewProtocol {
         ContactList = Common.filterContacts(origin: contacts)
         AppContactList = Common.filterAppContacts(origin: contacts)
         contactTableView.reloadData()
+        
     }
     
 }
@@ -88,7 +101,11 @@ extension ContactListView: UITableViewDataSource, UITableViewDelegate {
     }
     
     func tableView(_ tableView: UITableView, titleForHeaderInSection section: Int) -> String? {
-        return sections[section].uppercased()
+        if(ContactList.filter({$0.givenName.uppercased().starts(with: self.sections[section].uppercased())}).count > 0){
+            return sections[section].uppercased()
+        }else{
+            return nil
+        }
     }
     
     //Configuration of the cell
@@ -102,7 +119,7 @@ extension ContactListView: UITableViewDataSource, UITableViewDelegate {
             //Set the full name contact
             cell.nameLabel.text = contact.givenName + " " + contact.familyName
             //Set giveName and familyName first laters view
-            cell.capsLabel.text = String(contact.givenName.uppercased().first!) +  String(contact.familyName.uppercased().first!)
+             cell.capsLabel.text = String(contact.givenName.uppercased().first ?? " ".first!) +  String(contact.familyName.uppercased().first ?? " ".first!)
             //Set the mobilephone
             cell.phoneLabel.text = (contact.phoneNumbers.filter({$0.label == CNLabelPhoneNumberMobile}).last?.value.stringValue)!
             //For recycling cell we remove previous image
@@ -121,7 +138,7 @@ extension ContactListView: UITableViewDataSource, UITableViewDelegate {
             //Set the full name contact
             cell.nameLabel.text = contact.givenName + " " + contact.familyName
             //Set giveName and familyName first laters view
-            cell.capsLabel.text = String(contact.givenName.uppercased().first!) +  String(contact.familyName.uppercased().first!)
+            cell.capsLabel.text = String(contact.givenName.uppercased().first ?? " ".first!) +  String(contact.familyName.uppercased().first ?? " ".first!)
             //For recycling cell we remove previous image
             cell.contactPicture.image = nil
             
@@ -180,6 +197,7 @@ extension ContactListView : UISearchBarDelegate{
 extension ContactListView : MFMessageComposeViewControllerDelegate{
     func messageComposeViewController(_ controller: MFMessageComposeViewController, didFinishWith result: MessageComposeResult) {
         //Handle messagess
+        controller.dismiss(animated: true, completion: nil)
     }
     
     

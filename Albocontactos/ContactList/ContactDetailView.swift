@@ -15,6 +15,7 @@ class ContactDetailView: UIViewController {
     @IBOutlet weak var contactPicture: UIImageView!
     @IBOutlet weak var phoneButton: UIButton!
     var contact : CNContact = CNContact()
+    var phoneNumber : String = ""
     override func viewDidLoad() {
         super.viewDidLoad()
 
@@ -43,8 +44,8 @@ class ContactDetailView: UIViewController {
         if contact.imageDataAvailable{
             contactPicture.image = UIImage(data: contact.thumbnailImageData!)
         }
-        
-        self.phoneButton.setTitle((contact.phoneNumbers.filter({$0.label == CNLabelPhoneNumberMobile}).last?.value.stringValue)!, for: .normal)
+        phoneNumber = (contact.phoneNumbers.filter({$0.label == CNLabelPhoneNumberMobile}).last?.value.stringValue)!
+        self.phoneButton.setTitle(phoneNumber, for: .normal)
     }
     @IBAction func phoneClicked(_ sender: Any) {
         //Handle the phone clicked
@@ -53,7 +54,7 @@ class ContactDetailView: UIViewController {
         let actionAdd = UIAlertAction(title: "Marcar", style: .default) { (action) in
             
                 
-            if let url = URL(string: "tel://\((self.contact.phoneNumbers.filter({$0.label == CNLabelPhoneNumberMobile}).last?.value.stringValue)!)"),
+            if let url = URL(string: "tel://" + self.phoneNumber.digits),
                     UIApplication.shared.canOpenURL(url) {
                     if #available(iOS 10, *) {
                         UIApplication.shared.open(url, options: [:], completionHandler:nil)
@@ -102,7 +103,7 @@ class ContactDetailView: UIViewController {
 
 extension ContactDetailView : MFMessageComposeViewControllerDelegate{
     func messageComposeViewController(_ controller: MFMessageComposeViewController, didFinishWith result: MessageComposeResult) {
-        
+        controller.dismiss(animated: true, completion: nil)
     }
     
     
